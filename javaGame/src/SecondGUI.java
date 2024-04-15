@@ -6,7 +6,7 @@ import java.util.Random;
 
 public class SecondGUI extends JFrame {
     private JPanel playingField;
-    private ArrayList<Point> bubbleOrigins;
+    private ArrayList<BubbleContainer> bubbleContainers;
     private int neighborhoodSize = 50;
     private int round = 1;
     private int maxRounds = 10;
@@ -23,16 +23,16 @@ public class SecondGUI extends JFrame {
         setSize(400, 450); // Increased height for timer display
         setLayout(new BorderLayout());
 
-        bubbleOrigins = new ArrayList<>();
+        bubbleContainers = new ArrayList<>();
 
         playingField = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                for (Point origin : bubbleOrigins) {
-                    int x = (int) origin.getX();
-                    int y = (int) origin.getY();
-                    g.setColor(Color.BLUE);
+                for (BubbleContainer container : bubbleContainers) {
+                    int x = container.getX();
+                    int y = container.getY();
+                    g.setColor(container.getColor()); // Set color for each container
                     g.fillOval(x, y, 20, 20);
                 }
                 g.drawString("Round: " + round, 10, 20);
@@ -50,9 +50,9 @@ public class SecondGUI extends JFrame {
                 int bubbleIndex = getClickedBubbleIndex(clickPoint);
                 if (bubbleIndex != -1) {
                     // Bubble clicked, remove it
-                    bubbleOrigins.remove(bubbleIndex);
+                    bubbleContainers.remove(bubbleIndex);
                     playingField.repaint();
-                    if (bubbleOrigins.isEmpty()) {
+                    if (bubbleContainers.isEmpty()) {
                         if (round < maxRounds) {
                             // All bubbles burst, start a new round
                             round++;
@@ -64,11 +64,12 @@ public class SecondGUI extends JFrame {
                     }
                 } else {
                     // If no bubble was clicked, add a new one if space allows
-                    if (bubbleOrigins.size() < difficulty) {
+                    if (bubbleContainers.size() < difficulty) {
                         if (isValidBubbleOrigin(clickPoint)) {
-                            bubbleOrigins.add(clickPoint);
+                            BubbleContainer newContainer = new BubbleContainer(clickPoint, getRandomColor());
+                            bubbleContainers.add(newContainer);
                             playingField.repaint();
-                            if (bubbleOrigins.size() == difficulty) {
+                            if (bubbleContainers.size() == difficulty) {
                                 // Start Round 1
                                 startNewRound();
                             }
@@ -82,11 +83,9 @@ public class SecondGUI extends JFrame {
             }
 
             private int getClickedBubbleIndex(Point clickPoint) {
-                for (int i = 0; i < bubbleOrigins.size(); i++) {
-                    Point bubbleOrigin = bubbleOrigins.get(i);
-                    double distance = Math.sqrt(Math.pow(clickPoint.getX() - bubbleOrigin.getX(), 2) +
-                                                Math.pow(clickPoint.getY() - bubbleOrigin.getY(), 2));
-                    if (distance <= 20) {
+                for (int i = 0; i < bubbleContainers.size(); i++) {
+                    BubbleContainer container = bubbleContainers.get(i);
+                    if (container.contains(clickPoint)) {
                         return i;
                     }
                 }
@@ -107,6 +106,12 @@ public class SecondGUI extends JFrame {
     private void startNewRound() {
         currentRoundTime = initialRoundTime - (round - 1);
         timerLabel.setText("Time Left: " + currentRoundTime + "s");
+        
+        // Stop the previous timer if it's running
+        if (timer != null && timer.isRunning()) {
+            timer.stop();
+        }
+        
         timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -118,12 +123,14 @@ public class SecondGUI extends JFrame {
                 }
             }
         });
+        
         timer.start();
         repositionBubblesGlobally();
         playingField.repaint();
         JOptionPane.showMessageDialog(SecondGUI.this,
                 "Round " + round + " started", "Round Start", JOptionPane.INFORMATION_MESSAGE);
     }
+    
 
     private void endGame(String message) {
         if (timer != null && timer.isRunning()) {
@@ -134,12 +141,67 @@ public class SecondGUI extends JFrame {
     }
 
     private void repositionBubblesGlobally() {
-        bubbleOrigins.clear();
+        bubbleContainers.clear();
         Random random = new Random();
-        for (int i = 0; i < difficulty; i++) {
+        int count = 0;
+        while (count < difficulty) {
             int x = random.nextInt(playingField.getWidth() - 20);
             int y = random.nextInt(playingField.getHeight() - 20);
-            bubbleOrigins.add(new Point(x, y));
+            BubbleContainer newContainer = new BubbleContainer(new Point(x, y), getRandomColor());
+            if (!hasCollision(newContainer)) {
+                bubbleContainers.add(newContainer);
+                count++;
+            }
+        }
+    }
+
+    private boolean hasCollision(BubbleContainer newContainer) {
+        for (BubbleContainer container : bubbleContainers) {
+            if (isCollision(container, newContainer)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCollision(BubbleContainer container1, BubbleContainer container2) {
+        Rectangle rect1 = new Rectangle(container1.getX(), container1.getY(), 20, 20);
+        Rectangle rect2 = new Rectangle(container2.getX(), container2.getY(), 20, 20);
+        return rect1.intersects(rect2);
+    }
+
+    private Color getRandomColor() {
+        Random rand = new Random();
+        float r = rand.nextFloat();
+        float g = rand.nextFloat();
+        float b = rand.nextFloat();
+        return new Color(r, g, b);
+    }
+
+    private class BubbleContainer {
+        private Point position;
+        private Color color;
+
+        public BubbleContainer(Point position, Color color) {
+            this.position = position;
+            this.color = color;
+        }
+
+        public int getX() {
+            return (int) position.getX();
+        }
+
+        public int getY() {
+            return (int) position.getY();
+        }
+
+        public boolean contains(Point point) {
+            Rectangle rect = new Rectangle(getX(), getY(), 20, 20);
+            return rect.contains(point);
+        }
+
+        public Color getColor() {
+            return color;
         }
     }
 }

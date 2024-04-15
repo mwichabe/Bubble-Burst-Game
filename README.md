@@ -46,5 +46,4 @@ Screenshots:
 Credits:
 - Developed by Collins Mwichabe
 
-License:
-This project is licensed under the [License Name].
+
