@@ -15,12 +15,14 @@ public class SecondGUI extends JFrame {
     private int currentRoundTime;
     private Timer timer;
     private JLabel timerLabel;
+    private int borderSize = 20;
+
 
     public SecondGUI(int difficulty) {
         this.difficulty = difficulty;
         setTitle("Playing Field");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(400, 450); // Increased height for timer display
+        setSize(400, 450); 
         setLayout(new BorderLayout());
 
         bubbleContainers = new ArrayList<>();
@@ -32,8 +34,11 @@ public class SecondGUI extends JFrame {
                 for (BubbleContainer container : bubbleContainers) {
                     int x = container.getX();
                     int y = container.getY();
-                    g.setColor(container.getColor()); // Set color for each container
-                    g.fillOval(x, y, 20, 20);
+                    int containerSize = neighborhoodSize;
+                    g.setColor(Color.BLACK);
+                    g.drawRect(x, y, containerSize, containerSize);
+                    g.setColor(container.getColor());
+                    g.fillOval(container.getBubbleX(), container.getBubbleY(), 18, 18);
                 }
                 g.drawString("Round: " + round, 10, 20);
             }
@@ -94,6 +99,27 @@ public class SecondGUI extends JFrame {
         });
 
         add(playingField, BorderLayout.CENTER);
+        Timer bubbleTimer = new Timer(100, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveBubbles();
+                playingField.repaint();
+            }
+        });
+        bubbleTimer.start();
+    }
+    private void moveBubbles() {
+        for (BubbleContainer container : bubbleContainers) {
+            int newX = container.getX() + getRandomMovement();
+            int newY = container.getY() + getRandomMovement();
+            container.setBubbleX(newX);
+            container.setBubbleY(newY);
+        }
+    }
+
+    private int getRandomMovement() {
+        return (int) (Math.random() * 5) - 2;
+    
     }
 
     private boolean isValidBubbleOrigin(Point point) {
@@ -181,11 +207,33 @@ public class SecondGUI extends JFrame {
     private class BubbleContainer {
         private Point position;
         private Color color;
+        private int bubbleX;
+        private int bubbleY;
 
         public BubbleContainer(Point position, Color color) {
             this.position = position;
             this.color = color;
+            this.bubbleX = position.x;
+            this.bubbleY = position.y;
         }
+
+       
+   
+    public int getBubbleX() {
+        return bubbleX;
+    }
+
+    public void setBubbleX(int bubbleX) {
+        this.bubbleX = bubbleX;
+    }
+
+    public int getBubbleY() {
+        return bubbleY;
+    }
+
+    public void setBubbleY(int bubbleY) {
+        this.bubbleY = bubbleY;
+    }
 
         public int getX() {
             return (int) position.getX();
